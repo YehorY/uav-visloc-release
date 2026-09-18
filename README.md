@@ -14,6 +14,12 @@ estimate, with the GT polyline (dashed), trajectory (green) and relocalization c
 
 - **Synthetic imagery.** The sequence is a Google Earth render (the watermark is visible), not real flight video,
   and it is the only sequence evaluated. It has one gradual ~30° curve, not a multi-turn flight.
+- **No IMU or odometry.** The environment is a synthetic 2D map render, so there are no inertial sensors or
+  wheel/flow odometry. Position comes only from visual landmark localization. Two non-visual inputs shape it: the
+  mission-leg heading replayed from the flight-controller log (`nav.source: "telemetry"`), which orients the
+  kinematic clamp, and a short coast. When visual consensus is lost, the estimate is extrapolated at constant velocity
+  from its own recent trajectory for up to 15 frames (`coasting.max_frames`). After that it is declared lost and
+  relocalization starts. Nothing integrates measured physical motion.
 - **North-up nadir camera assumed.** The solver estimates translation only, at a scale locked once at boot.
   Camera roll, pitch or yaw break this assumption, and this sequence does not test it.
 - **Uncorrected ground truth.** Errors are cross-track only, against a 4-waypoint GPS polyline whose projection
