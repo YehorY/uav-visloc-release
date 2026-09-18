@@ -1,0 +1,159 @@
+# UAV-VisLoc demo configuration for the frozen GeoTest1 benchmark sequence.
+# Entry point:  python run.py --config configs/demo.yaml
+#
+# LEVEL 1 — three tiers, so a new flight never inherits another flight's hacks silently:
+#   GENERAL                   sensor / platform / navigation source. Not fitted to any sequence.
+#   SEQUENCE                  ground truth and mission record for THIS flight. Data, not tuning.
+#   SEQUENCE-SPECIFIC TUNING  values fitted or validated on THIS flight. A different sequence
+#                             invalidates them until they are re-validated.
+
+seed: 42                      # global determinism seed (python / numpy / torch / opencv)
+
+data:
+  video: data/GeoTest1.mp4
+  model: data/best.pt
+  map_image: data/datamap_4k.jpeg
+
+run:
+  max_frames: 0               # 0 = full sequence; set >0 to bound demo runtime
+  write_video: true           # output_slam.mp4 encoding. false skips the file write only (frame_log is
+                              # byte-identical); measured speedup on GPU is within run-to-run noise,
+                              # because overlay DRAWING (not encoding) is the untimed per-frame cost.
+
+output:
+  frame_log: out/frame_log.csv     # deterministic per-frame diagnostics (acceptance artifact)
+  profile_log: out/profile.csv     # wall-clock per-stage timings (excluded from determinism diff)
+
+# =================================================================================================
+# GENERAL — sensor / platform / navigation source
+# =================================================================================================
+sensor:
+  camera_width_px: 1920       # video frame size; sets the map-space camera footprint
+  camera_height_px: 1080
+  map_gsd_m_per_px: 0.5       # satellite map ground sample distance (coordinate toolkit + metrics)
+  detector_landmark_classes: [0, 1, 2]   # YOLO classes used as landmarks: 0 building, 1 tree,
+                                         # 2 infrastructure. A property of the model, not the flight.
+
+nav:
+  # Where heading and scale come from. The estimator never derives either from pixels.
+  #   "telemetry" -> TelemetryNavSource: flight-controller execution-log replay (leg heading changes
+  #                  at each recorded waypoint passage). The reference configuration.
+  #   "static"    -> StaticNavSource: one constant heading for the whole flight. Fallback when no
+  #                  FC data exists; NOT equivalent on a multi-leg mission.
+  source: "telemetry"
+  scale_prior: 0.5            # map px per video px BEFORE the one-time visual lock. The frame-1 boot
+                              # search's viewport filter runs at this value; the lock happens later
+                              # in the same frame.
+  static_heading_deg: 225.0   # StaticNavSource only (225 = -135 deg, the pre-Phase-8.1 constant)
+
+# =================================================================================================
+# SEQUENCE — GeoTest1 ground truth and mission record (data, not tuning)
+# =================================================================================================
+sequence:
+  id: "GeoTest1"
+  gps_waypoints:              # [lat, lon]; mission legs and the ATE reference polyline
+    - [32.40875988136062, -83.63430452540855]
+    - [32.4141985375264, -83.63828046768121]
+    - [32.417070502978845, -83.64063238670772]
+    - [32.42317545768992, -83.64244069736169]
+  # Frames at which the real flight crossed each interior waypoint's perpendicular: a recorded
+  # MAVLink execution log. Consumed only by nav.source "telemetry".
+  waypoint_passage_frames: [255, 353]
+
+# =================================================================================================
+# SEQUENCE-SPECIFIC TUNING — fitted / validated on GeoTest1
+# =================================================================================================
+sequence_specific_tuning:
+  # PHASE 8.2 — asymmetric kinematic clamp on the continuation delta, decomposed in the live
+  # mission-leg frame (px per frame). The isotropic 40 px/f cap let transient RANSAC consensus flips
+  # drag the estimate at full speed in any direction (8.2% of frames pinned at cap, +27% arc wobble).
+  # Generous forward (~1.5x true ground speed), modest lateral, minimal-but-nonzero backward: the
+  # estimate may CORRECT backward (Phase 7.4 lesson) but may not SPRINT backward. Commits stay
+  # position-neutral (offset absorption), so the clamp is inert at boot and at handoffs.
+  kinematic_clamp_pxf:
+    forward: 15.0
+    lateral: 8.0
+    backward: 4.0
+
+  # PHASE 8.1 — panic-only dynamic 1D kinematic gate. A PANIC re-lock may not land longitudinally
+  # behind the last genuine fix beyond tau = tol_px + drift_rate * blind_frames ("the vehicle cannot
+  # fly backward" is physics; "the estimate must never step backward" is false once the reference
+  # has drifted). Never fires on pre-emptive handoffs: offset absorption makes raw-vs-estimate
+  # comparisons cross-frame there.
+  kinematic_1d_gate:
+    tol_px: 40.0
+    drift_rate_px_per_frame: 4.0
+
+  # LEVEL 0 — confidence gating, checked BEFORE the state update. Below-threshold frames keep the
+  # previous estimate, are flagged low_confidence=1, and publish no new position.
+  gating:
+    # EVIDENCE-BASED (Level-0 CSV, 401 frames). Observed inlier_ratio range: [0.143, 1.000].
+    #   0.30 -> flags 62 frames (15.5%), ALL with only 1-2 inliers ... and REGRESSES ATE
+    #           26.51 -> 31.32m (+18%). Freezing the estimate on a weak-but-informative solve
+    #           is worse than accepting it, because the Phase-8.2 asymmetric clamp (15/8/4 px/f)
+    #           already bounds how far any bad solve can drag the state. The clamp is the
+    #           protection; a hard gate on top of it only discards information.
+    #   0.10 -> flags 0 frames on this sequence (min observed is 0.143): provably metric-neutral,
+    #           yet still armed to catch a genuinely catastrophic future solve (<10% consensus).
+    min_inlier_ratio: 0.10      # armed safety net, inert on the benchmark (ATE stays 26.51m)
+    min_topsis_score: 0.0       # relocalization commit gate: inert pending real score distribution
+
+  # Predictive pixel tracker: associates each detection with a track by searching a sector around
+  # the track's predicted position (pos + vel).
+  pixel_tracker:
+    sector_radius_px: 50.0      # association search radius around the prediction (video px)
+    max_missed_frames: 5        # a track that misses this many frames in a row is deleted. Until
+                                # then it COASTS at pos + vel and its coasted position still VOTES in
+                                # RANSAC (true since 2026-05-11; see the Level 1 archaeology audit).
+    # Velocity update: vel = old * vel + new * (detection - pos). Two explicit weights on purpose:
+    # deriving one as 1 - other breaks bit-identity (1 - 0.8 == 0.19999999999999996 != 0.2).
+    velocity_weight_old: 0.8
+    velocity_weight_new: 0.2
+
+  # Estimate coasting after visual lock is lost.
+  coasting:
+    max_frames: 15              # coast this long before declaring tracking lost (also scales the
+                                # flashlight's uncertainty ratio)
+    velocity_lookback_frames: 15   # macro-velocity window over the trajectory history. A separate
+                                   # setting that happens to equal max_frames.
+
+  # One-time visual scale lock (see nav.scale_prior).
+  scale_lock:
+    min_pair_separation_video_px: 50.0   # the widest bound landmark pair must exceed this
+
+  # Deterministic exhaustive-consensus RANSAC (translation only).
+  ransac:
+    inlier_threshold_map_px: 35.0   # per-pair position estimates within this radius form a consensus
+
+  # Relocalization search (boot, panic, and pre-emptive handoff).
+  relocalization:
+    handoff_max_pairs: 2        # a pre-emptive handoff search fires when bound pairs fall to this
+    photo_route_max_vertices: 10    # longest video-side landmark route built for matching
+    orbit_radius_map_px: 200.0  # map landmarks within this radius group into one constellation
+    flashlight:                 # which constellation lies ahead: beam and radius widen as tracking
+                                # uncertainty u = lost_frames / coasting.max_frames grows from 0 to 1
+      beam_base_deg: 15         # half-beam = beam_base + beam_growth * u
+      beam_growth_deg: 60
+      radius_base_map_px: 200.0 # radius = radius_base + radius_growth * u
+      radius_growth_map_px: 300.0
+    a_star:                     # map-side route search per candidate anchor
+      beam_width: 5
+      angle_weight: 1.0
+      target_percentage: 0.8
+
+# =================================================================================================
+# EXPERIMENTS — Level 2.3 ablation switches. NOT tuning and not part of the three tiers above.
+# Everything OFF reproduces production behaviour, proven cell-identical to the Level 2 reference.
+# scripts/run_ablations.py overrides these per run.
+# =================================================================================================
+experiments:
+  detection_dropout:            # A4: sparse-landmark regime
+    rate: 0.0                   # drop each detection independently with this probability
+    seed: 0                     # per-frame stream seeded by (seed, frame_id)
+    exempt_frames: [1]          # the boot frame keeps every detection (protects the scale lock)
+  topsis_criteria: null         # A2: null = production multi-criteria TOPSIS; ["shape"] or ["ratio"]
+  graph_mode: "route"           # A3b: "route" = production graph matching; "nodes_only" = no edges
+  node_only:                    # A3b matcher settings (used only with graph_mode "nodes_only")
+    match_radius_map_px: 35.0   # same radius as the RANSAC consensus
+    min_matches: 3
+  exclude_coasted_votes: false  # A_coast: coasted tracks do not vote in the continuation solve

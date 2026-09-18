@@ -1,0 +1,73 @@
+{
+  "run": "A3b_nodes_only",
+  "key_frame": 1,
+  "control": {
+    "pair_ids": [
+      11,
+      24
+    ],
+    "map_dist": 128.7,
+    "vid_dist": 205.4,
+    "vid": [
+      [
+        184,
+        359
+      ],
+      [
+        288,
+        182
+      ]
+    ],
+    "map": [
+      [
+        1797,
+        3634
+      ],
+      [
+        1857,
+        3520
+      ]
+    ],
+    "scale": 0.6266
+  },
+  "nodes_only": {
+    "pair_ids": [
+      4,
+      19
+    ],
+    "map_dist": 295.2,
+    "vid_dist": 555.1,
+    "vid": [
+      [
+        567,
+        342
+      ],
+      [
+        54,
+        129
+      ]
+    ],
+    "map": [
+      [
+        2040,
+        3622
+      ],
+      [
+        1772,
+        3499
+      ]
+    ],
+    "scale": 0.5318
+  },
+  "sift_scale_f1": 0.7005,
+  "sift_scale_median_f1_f50": 0.6439,
+  "nodes_only_scale_error_vs_control_pct": -15.1,
+  "rmse_px": {
+    "control": 53.1,
+    "nodes_only": 158.6
+  },
+  "commits": {
+    "control": 15,
+    "nodes_only": 10
+  }
+}

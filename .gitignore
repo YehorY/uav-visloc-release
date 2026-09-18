@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# IDE / tooling
+.idea/
+.vscode/
+.claude/
+
+# Ultralytics / PyTorch run artefacts
+runs/
+
+# Pipeline runtime outputs (written to the repo root by run_video_test.py)
+output_slam*.mp4
+slam_metrics_report.png
+*.log
+
+# out/: everything is regenerated, except the committed showcase and evidence files
+out/*
+!out/demo/
+out/demo/*
+!out/demo/geotest1_hero.gif
+!out/demo/demo_manifest.json
+!out/failure_cases/
+!out/ablations/
+out/ablations/*
+!out/ablations/summary.md
+!out/classical/
+out/classical/*
+!out/classical/sift_windowed.csv

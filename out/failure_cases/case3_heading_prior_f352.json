@@ -1,0 +1,56 @@
+{
+  "run": "control_r1",
+  "key_frame": 352,
+  "window": [
+    300,
+    372
+  ],
+  "direction_deg": {
+    "f304": {
+      "pipeline": -112.0,
+      "sift": -111.7
+    },
+    "f316": {
+      "pipeline": -140.5,
+      "sift": -108.5
+    },
+    "f328": {
+      "pipeline": -110.9,
+      "sift": -106.7
+    },
+    "f344": {
+      "pipeline": -110.2,
+      "sift": -105.2
+    },
+    "f352": {
+      "pipeline": -131.6,
+      "sift": -104.8
+    },
+    "f360": {
+      "pipeline": -112.9,
+      "sift": -104.3
+    }
+  },
+  "sift_direction_change_f300_f368_deg": 7.5,
+  "prior_leg_change_deg": 23.1,
+  "max_pipeline_vs_sift_divergence_deg": 35.4,
+  "max_divergence_frame": 319,
+  "clamp_active_frames_in_window": 20,
+  "gap_jump_px_at_commits": {
+    "88": 6.5,
+    "98": 3.1,
+    "172": 3.8,
+    "195": 1.7,
+    "250": -2.2,
+    "256": 8.3,
+    "266": -7.0,
+    "286": 4.2,
+    "321": 5.9,
+    "328": -4.4,
+    "355": 23.6,
+    "360": -6.0,
+    "374": 10.0,
+    "399": 1.4
+  },
+  "max_cross_track_px_in_window": 49.9
+}

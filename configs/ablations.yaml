@@ -1,0 +1,67 @@
+# LEVEL 2.3 — ablation matrix. Run with:  python scripts/run_ablations.py --matrix configs/ablations.yaml
+#
+# Every run is a fresh subprocess of run.py on a derived copy of base_config: identical seed, identical
+# frozen 401-frame sequence, one variable changed. The control runs first; if its frame log does not
+# hash to expect_control_sha256 the suite aborts before any ablation (the experiment hooks would not
+# be inert). All ATE is vs the nominal GT polyline, uncorrected image frame.
+
+base_config: configs/demo.yaml
+out_dir: out/ablations
+expect_control_sha256: 63e3e4bb11db52a4ff898e8ce314bdc260d5296be3fab8b328b83c4e52c987c6
+common_overrides:
+  run.write_video: false
+  run.max_frames: 0
+
+runs:
+  - id: control
+    repeats: 2
+    thesis: "Production pipeline, all experiment switches off. Reference for every delta; two repeats prove determinism."
+    overrides: {}
+
+  - id: A1_no_ransac
+    thesis: "RANSAC consensus protects the position solve from wrong landmark bindings. With an infinite inlier radius every binding votes and the solve is their plain mean."
+    overrides:
+      sequence_specific_tuning.ransac.inlier_threshold_map_px: .inf
+
+  - id: A2a_topsis_shape
+    thesis: "Multi-criteria TOPSIS beats any single criterion. Here candidates are ranked by route shape (internal-angle error) alone."
+    overrides:
+      experiments.topsis_criteria: [shape]
+
+  - id: A2b_topsis_ratio
+    thesis: "Multi-criteria TOPSIS beats any single criterion. Here candidates are ranked by edge-length ratio error alone."
+    overrides:
+      experiments.topsis_criteria: [ratio]
+
+  - id: A3b_nodes_only
+    thesis: "Graph topology (edges) carries localization value. Relocalization uses node positions and classes only, at the current nav scale; edge-length ratios, which are scale-invariant, are unavailable."
+    overrides:
+      experiments.graph_mode: nodes_only
+
+  - id: A4_drop30
+    seeds: [1, 2, 3, 4, 5]
+    thesis: "Graceful degradation with sparse landmarks: 30% of detections dropped at random (boot frame exempt)."
+    overrides:
+      experiments.detection_dropout.rate: 0.3
+
+  - id: A4_drop50
+    seeds: [1, 2, 3, 4, 5]
+    thesis: "Graceful degradation with sparse landmarks: 50% of detections dropped at random (boot frame exempt)."
+    overrides:
+      experiments.detection_dropout.rate: 0.5
+
+  - id: A4_drop70
+    seeds: [1, 2, 3, 4, 5]
+    thesis: "Graceful degradation with sparse landmarks: 70% of detections dropped at random (boot frame exempt)."
+    overrides:
+      experiments.detection_dropout.rate: 0.7
+
+  - id: A_coast
+    thesis: "Coasted tracks voting in RANSAC (since 2026-05-11) cause the high-inlier false consensus seen in Variant B. Only tracks detected this frame vote in the continuation solve; the handoff trigger and scale lock are unchanged."
+    overrides:
+      experiments.exclude_coasted_votes: true
+
+  - id: A_prior_static_heading
+    thesis: "How much tracking depends on the flight-plan prior. The leg headings from the FC-log replay (which drive the flashlight, kinematic clamp and 1D gate) are replaced by one static 225 deg heading. The waypoint-0 start prior is unchanged."
+    overrides:
+      nav.source: static

@@ -1,0 +1,52 @@
+{
+  "run": "A4_drop50_s5",
+  "key_frame": 131,
+  "window": [
+    100,
+    180
+  ],
+  "detections_key": 33,
+  "detections_control_key": 57,
+  "yolo_on_key_frame": 57,
+  "dropped_on_key_frame": 24,
+  "error_px": {
+    "f123": 141.5,
+    "f127": 173.5,
+    "f131": 205.5,
+    "f135": 237.5,
+    "f139": 269.5
+  },
+  "error_px_control": {
+    "f123": 103.0,
+    "f127": 105.7,
+    "f131": 108.3,
+    "f135": 110.9,
+    "f139": 113.5
+  },
+  "error_growth_px_per_frame_around_key": 8.0,
+  "frames_with_single_inlier_in_window": 56,
+  "bound_pairs_at_key": 3,
+  "min_bound_pairs_while_single_inlier": 3,
+  "search_candidates_in_window": 2,
+  "commits": [
+    1,
+    69,
+    91,
+    155,
+    172,
+    194,
+    249,
+    256,
+    266,
+    281,
+    298,
+    308,
+    318,
+    339,
+    367,
+    377,
+    399
+  ],
+  "max_error_px": 479.3,
+  "max_error_frame": 265
+}

@@ -1,0 +1,107 @@
+{
+  "locked_scale": 0.6266,
+  "sift_scale_f340": 0.5906,
+  "sift_scale_trend_pct_over_flight": -9.8,
+  "forward_clamp_px_per_frame": 15.0,
+  "segments": [
+    {
+      "frames": [
+        2,
+        87
+      ],
+      "pipeline_over_sift_path": 1.002,
+      "predicted_by_scale": 0.987,
+      "sift_speed_px_per_frame": 7.41
+    },
+    {
+      "frames": [
+        89,
+        97
+      ],
+      "pipeline_over_sift_path": 0.853,
+      "predicted_by_scale": 1.028,
+      "sift_speed_px_per_frame": 7.39
+    },
+    {
+      "frames": [
+        99,
+        171
+      ],
+      "pipeline_over_sift_path": 1.065,
+      "predicted_by_scale": 1.012,
+      "sift_speed_px_per_frame": 7.52
+    },
+    {
+      "frames": [
+        173,
+        194
+      ],
+      "pipeline_over_sift_path": 0.985,
+      "predicted_by_scale": 1.037,
+      "sift_speed_px_per_frame": 7.65
+    },
+    {
+      "frames": [
+        196,
+        249
+      ],
+      "pipeline_over_sift_path": 1.039,
+      "predicted_by_scale": 1.045,
+      "sift_speed_px_per_frame": 7.34
+    },
+    {
+      "frames": [
+        257,
+        265
+      ],
+      "pipeline_over_sift_path": 0.906,
+      "predicted_by_scale": 1.063,
+      "sift_speed_px_per_frame": 8.0
+    },
+    {
+      "frames": [
+        267,
+        285
+      ],
+      "pipeline_over_sift_path": 1.656,
+      "predicted_by_scale": 1.071,
+      "sift_speed_px_per_frame": 8.93
+    },
+    {
+      "frames": [
+        287,
+        320
+      ],
+      "pipeline_over_sift_path": 0.938,
+      "predicted_by_scale": 1.07,
+      "sift_speed_px_per_frame": 11.7
+    },
+    {
+      "frames": [
+        329,
+        354
+      ],
+      "pipeline_over_sift_path": 0.968,
+      "predicted_by_scale": 1.067,
+      "sift_speed_px_per_frame": 14.66
+    },
+    {
+      "frames": [
+        361,
+        373
+      ],
+      "pipeline_over_sift_path": 0.96,
+      "predicted_by_scale": 1.051,
+      "sift_speed_px_per_frame": 15.42
+    },
+    {
+      "frames": [
+        375,
+        398
+      ],
+      "pipeline_over_sift_path": 0.938,
+      "predicted_by_scale": 1.066,
+      "sift_speed_px_per_frame": 16.08
+    }
+  ]
+}

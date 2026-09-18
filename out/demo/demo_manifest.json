@@ -1,0 +1,90 @@
+{
+  "gif": {
+    "path": "out/demo\\geotest1_hero.gif",
+    "dims": [
+      800,
+      300
+    ],
+    "chosen": {
+      "source_step": 4,
+      "colors": 48,
+      "frames": 101,
+      "frame_ms": 200,
+      "gif_fps": 5.0,
+      "bytes": 9221515
+    },
+    "tried": [
+      {
+        "source_step": 2,
+        "colors": 64,
+        "frames": 201,
+        "frame_ms": 100,
+        "gif_fps": 10.0,
+        "bytes": 21394554
+      },
+      {
+        "source_step": 3,
+        "colors": 64,
+        "frames": 134,
+        "frame_ms": 150,
+        "gif_fps": 6.67,
+        "bytes": 14174290
+      },
+      {
+        "source_step": 3,
+        "colors": 48,
+        "frames": 134,
+        "frame_ms": 150,
+        "gif_fps": 6.67,
+        "bytes": 12300693
+      },
+      {
+        "source_step": 4,
+        "colors": 48,
+        "frames": 101,
+        "frame_ms": 200,
+        "gif_fps": 5.0,
+        "bytes": 9221515
+      }
+    ],
+    "duration_s": 20.2,
+    "playback_speed_vs_real_time": 0.668,
+    "background_blur_sigma_panel_px": 2.6,
+    "within_limit": true,
+    "max_mb": 10.0
+  },
+  "diagnostic_mp4": {
+    "path": "out/demo\\geotest1_diagnostic.mp4",
+    "bytes": 71949456,
+    "dims": [
+      1920,
+      720
+    ],
+    "frames": 401,
+    "fps": 30.0,
+    "codec": "mp4v"
+  },
+  "stills": [
+    1,
+    98,
+    159,
+    255,
+    352,
+    401
+  ],
+  "map_panel": {
+    "window_map_px": [
+      800,
+      900
+    ],
+    "panel_px": [
+      640,
+      720
+    ],
+    "scale_x": 0.8,
+    "scale_y": 0.8,
+    "uniform": true
+  },
+  "caption": "GeoTest1: Google Earth render, ~30° curved trajectory, 16% scale variation, nominal 0.5m/px",
+  "caption_notes": "errors vs uncorrected GT polyline  ·  camera assumed north-up nadir"
+}
