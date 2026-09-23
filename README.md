@@ -48,7 +48,7 @@ Render the demo assets:
 ```bash
 python run.py --config configs/demo.yaml   # with output.track_log: out/demo/track_log.jsonl set
 python scripts/render_demo.py --config configs/demo.yaml --frame-log out/frame_log.csv --profile out/profile.csv --track-log out/demo/track_log.jsonl --sift out/classical/sift_windowed.csv --out out/demo
-python scripts/render_architecture.py --out docs/assets/architecture.png
+python scripts/render_architecture_graphviz.py --out docs/assets/architecture --format png   # needs graphviz
 ```
 
 ## Quick start

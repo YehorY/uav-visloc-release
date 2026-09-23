@@ -2,7 +2,7 @@
 
 ![Architecture](assets/architecture.png)
 
-The PNG is rendered by `scripts/render_architecture.py` using only matplotlib, with no external CLI. The Mermaid source below has the same structure and renders natively on GitHub.
+The PNG is rendered by `scripts/render_architecture_graphviz.py`, which needs the `graphviz` Python package and the Graphviz binaries. It also writes a `.gv` source next to the image, so `dot -Tpdf` gives vector output. The Mermaid source below has the same structure and renders natively on GitHub.
 
 Badges show the RMSE change when a component is removed. They were measured on GeoTest1 in Level 2 (see [level2_evaluation.md](level2_evaluation.md) and `out/ablations/summary.md`). Errors are measured against the **uncorrected** 4-waypoint GT polyline, and metres are map px × a nominal 0.5 m/px.
 
