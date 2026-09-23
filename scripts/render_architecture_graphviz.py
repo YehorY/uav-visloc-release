@@ -12,8 +12,7 @@ Deliberately unstyled: right-angle edges, square corners, no fills, one typeface
 The .gv source is written next to the image, so the figure can also be rendered with plain
 `dot -Tpdf docs/assets/architecture.gv -o architecture.pdf` (LaTeX-friendly vector output).
 
-The matplotlib version of the same structure is scripts/render_architecture.py; the Mermaid source
-is docs/architecture.md.
+The Mermaid source of the same structure is docs/architecture.md.
 """
 
 import argparse
@@ -40,20 +39,22 @@ def node_label(title, detail, ablation=None):
 def build():
     g = Digraph("uav_visloc", format="png")
     g.attr(rankdir="LR", splines="ortho", nodesep="0.35", ranksep="0.55", bgcolor="white",
-           fontname=FONT, fontsize="11", labelloc="b", labeljust="l")
+           fontname=FONT, fontsize="11", labelloc="b", labeljust="l", forcelabels="true")
     g.attr("node", shape="box", style="", fontname=FONT, fontsize="11", color="black",
            penwidth="1.0", margin="0.12,0.08")
     g.attr("edge", fontname=FONT, fontsize="9", color="black", arrowsize="0.7", penwidth="1.0")
 
     with g.subgraph(name="cluster_in") as c:
-        c.attr(label="INPUTS", fontsize="11", fontname=FONT, style="solid", color="black", penwidth="1.0")
+        c.attr(label="INPUTS", fontsize="11", fontname=FONT, style="solid", color="black", penwidth="1.0",
+               labelloc="t", labeljust="l")
         c.node("cam", node_label("Camera frame", "nadir, north-up, 1920&#215;1080"))
         c.node("map", node_label("Satellite map", "landmark catalogue (SAHI YOLO, offline)"))
         c.node("nav", node_label("NavSource", "leg heading (FC-log replay);<BR/>scale prior 0.5, locked once at boot"))
 
     with g.subgraph(name="cluster_fast") as c:
         c.attr(label="FAST LOOP — every frame (386 of 401; ~58 ms median, RTX 5060)",
-               fontsize="11", fontname=FONT, style="solid", color="black", penwidth="1.0")
+               fontsize="11", fontname=FONT, style="solid", color="black", penwidth="1.0",
+               labelloc="t", labeljust="l")
         c.node("yolo", node_label("YOLO landmarks", "building / tree / infrastructure"))
         c.node("trk", node_label("Pixel tracker", "persistent IDs, prediction, coasting", "A_coast: +40%"))
         c.node("pairs", node_label("Bound pairs", "track &#8596; map landmark (set at last commit)"))
@@ -65,7 +66,8 @@ def build():
 
     with g.subgraph(name="cluster_slow") as c:
         c.attr(label="SLOW LOOP — event-driven relocalization (15 of 401; ~355 ms candidate generation)",
-               fontsize="11", fontname=FONT, style="solid", color="black", penwidth="1.0")
+               fontsize="11", fontname=FONT, style="solid", color="black", penwidth="1.0",
+               labelloc="t", labeljust="l")
         c.node("graph", node_label("Video route graph", "landmark route, &#8804;10 vertices"))
         c.node("astar", node_label("Viewport + A*", "class-matched map routes in footprint"))
         c.node("cmp", node_label("Graph comparison", "internal angles + edge-length ratios", "A3b: +199%"))
@@ -76,11 +78,13 @@ def build():
 
     g.edge("cam", "yolo")
     g.edge("map", "astar")
-    g.edge("nav", "clamp", style="dashed", constraint="false")
-    g.edge("nav", "graph", style="dashed")
-    g.edge("pairs", "graph", label="TRIGGER: boot / tracking lost / ≤2 bound pairs",
+    # NavSource -> Clamp is stated in the caption instead of drawn: as an edge it spans the whole figure
+    # and strikes through the slow-loop cluster title. The clamp node already names the leg frame.
+    g.edge("nav", "graph", style="dashed", xlabel="flashlight\nheading")
+    # splines=ortho silently drops `label` on edges; `xlabel` is placed instead (forcelabels=true above)
+    g.edge("pairs", "graph", xlabel="TRIGGER\nboot / tracking lost / ≤2 bound pairs",
            penwidth="1.6", constraint="false")
-    g.edge("commit", "pairs", label="REBIND: new track ↔ map pairs",
+    g.edge("commit", "pairs", xlabel="REBIND\nnew track ↔ map pairs",
            penwidth="1.6", style="dashed", constraint="false")
 
     g.attr(label=(
@@ -88,7 +92,8 @@ def build():
         "  1. The handoff trigger counts bound pairs, not their quality: 3 pairs with 1 inlier, or 8 stale pairs, never fire a search.\\l"
         "  2. The 8 px/frame lateral clamp paces both drift and recovery; the waypoint-derived heading prior jumps 23 deg against a 7.5 deg imaged turn.\\l"
         "  3. Translation-only solver (camera assumed north-up nadir); ground truth is an uncorrected 4-waypoint polyline, so ATE is cross-track only.\\l"
-        "  4. Ablation deltas are RMSE changes measured on one sequence (GeoTest1, 401 frames, Google Earth render).\\l"))
+        "  4. Ablation deltas are RMSE changes measured on one sequence (GeoTest1, 401 frames, Google Earth render).\\l"
+        "\\lNote: NavSource also supplies the mission-leg frame used by Clamp + estimate; that edge is omitted for legibility.\\l"))
     return g
 
 
@@ -103,7 +108,8 @@ def main():
     g.format = args.format
     if args.format == "png":
         g.attr(dpi=args.dpi)
-    path = g.render(filename=args.out, cleanup=False)          # keeps the .gv source next to the image
+    # filename carries the .gv extension, so the DOT source is saved as <out>.gv rather than extensionless
+    path = g.render(filename=f"{args.out}.gv", outfile=f"{args.out}.{args.format}", cleanup=False)
     print(f"[ARCH] wrote {path} (+ {args.out}.gv)")
 
 

@@ -1,0 +1,45 @@
+digraph uav_visloc {
+	bgcolor=white fontname=Helvetica fontsize=11 forcelabels=true labeljust=l labelloc=b nodesep=0.35 rankdir=LR ranksep=0.55 splines=ortho
+	node [color=black fontname=Helvetica fontsize=11 margin="0.12,0.08" penwidth=1.0 shape=box style=""]
+	edge [arrowsize=0.7 color=black fontname=Helvetica fontsize=9 penwidth=1.0]
+	subgraph cluster_in {
+		color=black fontname=Helvetica fontsize=11 label=INPUTS labeljust=l labelloc=t penwidth=1.0 style=solid
+		cam [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1"><TR><TD ALIGN="CENTER"><B>Camera frame</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9">nadir, north-up, 1920&#215;1080</FONT></TD></TR></TABLE>>]
+		map [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1"><TR><TD ALIGN="CENTER"><B>Satellite map</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9">landmark catalogue (SAHI YOLO, offline)</FONT></TD></TR></TABLE>>]
+		nav [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1"><TR><TD ALIGN="CENTER"><B>NavSource</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9">leg heading (FC-log replay);<BR/>scale prior 0.5, locked once at boot</FONT></TD></TR></TABLE>>]
+	}
+	subgraph cluster_fast {
+		color=black fontname=Helvetica fontsize=11 label="FAST LOOP — every frame (386 of 401; ~58 ms median, RTX 5060)" labeljust=l labelloc=t penwidth=1.0 style=solid
+		yolo [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1"><TR><TD ALIGN="CENTER"><B>YOLO landmarks</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9">building / tree / infrastructure</FONT></TD></TR></TABLE>>]
+		trk [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1"><TR><TD ALIGN="CENTER"><B>Pixel tracker</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9">persistent IDs, prediction, coasting</FONT></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9" FACE="Courier">[A_coast: +40%]</FONT></TD></TR></TABLE>>]
+		pairs [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1"><TR><TD ALIGN="CENTER"><B>Bound pairs</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9">track &#8596; map landmark (set at last commit)</FONT></TD></TR></TABLE>>]
+		ransac [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1"><TR><TD ALIGN="CENTER"><B>Deterministic RANSAC</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9">translation consensus at locked scale</FONT></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9" FACE="Courier">[A1: +68%]</FONT></TD></TR></TABLE>>]
+		clamp [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1"><TR><TD ALIGN="CENTER"><B>Clamp + estimate</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9">offset absorption; 15/8/4 px per frame<BR/>in the NavSource leg frame</FONT></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9" FACE="Courier">[A_prior: +138%]</FONT></TD></TR></TABLE>>]
+		yolo -> trk
+		trk -> pairs
+		pairs -> ransac
+		ransac -> clamp
+	}
+	subgraph cluster_slow {
+		color=black fontname=Helvetica fontsize=11 label="SLOW LOOP — event-driven relocalization (15 of 401; ~355 ms candidate generation)" labeljust=l labelloc=t penwidth=1.0 style=solid
+		"graph" [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1"><TR><TD ALIGN="CENTER"><B>Video route graph</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9">landmark route, &#8804;10 vertices</FONT></TD></TR></TABLE>>]
+		astar [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1"><TR><TD ALIGN="CENTER"><B>Viewport + A*</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9">class-matched map routes in footprint</FONT></TD></TR></TABLE>>]
+		cmp [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1"><TR><TD ALIGN="CENTER"><B>Graph comparison</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9">internal angles + edge-length ratios</FONT></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9" FACE="Courier">[A3b: +199%]</FONT></TD></TR></TABLE>>]
+		topsis [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1"><TR><TD ALIGN="CENTER"><B>TOPSIS arbitration</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9">shape / ratio / constellation affinity</FONT></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9" FACE="Courier">[A2: +26% / +50%]</FONT></TD></TR></TABLE>>]
+		commit [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1"><TR><TD ALIGN="CENTER"><B>Commit</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9">new bindings; one-time scale lock at boot</FONT></TD></TR></TABLE>>]
+		"graph" -> astar
+		astar -> cmp
+		cmp -> topsis
+		topsis -> commit
+	}
+	cam -> yolo
+	map -> astar
+	nav -> "graph" [style=dashed xlabel="flashlight
+heading"]
+	pairs -> "graph" [constraint=false penwidth=1.6 xlabel="TRIGGER
+boot / tracking lost / ≤2 bound pairs"]
+	commit -> pairs [constraint=false penwidth=1.6 style=dashed xlabel="REBIND
+new track ↔ map pairs"]
+	label="\lKnown limits (Level 2 evidence):\l  1. The handoff trigger counts bound pairs, not their quality: 3 pairs with 1 inlier, or 8 stale pairs, never fire a search.\l  2. The 8 px/frame lateral clamp paces both drift and recovery; the waypoint-derived heading prior jumps 23 deg against a 7.5 deg imaged turn.\l  3. Translation-only solver (camera assumed north-up nadir); ground truth is an uncorrected 4-waypoint polyline, so ATE is cross-track only.\l  4. Ablation deltas are RMSE changes measured on one sequence (GeoTest1, 401 frames, Google Earth render).\l\lNote: NavSource also supplies the mission-leg frame used by Clamp + estimate; that edge is omitted for legibility.\l"
+	dpi=200
+}
