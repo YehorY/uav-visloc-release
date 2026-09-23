@@ -285,6 +285,51 @@ classical matching.**
 Reproduce: `scripts/evaluate.py`, `scripts/classical_baseline.py`, `scripts/run_ablations.py`,
 `scripts/render_failure_cases.py` (commands in the full report).
 
+## Ablation Study: Neural vs. Geometric TOPSIS
+
+Candidate arbitration during relocalization ranks map routes with TOPSIS over geometric criteria: internal
+angle error, edge-length ratio error, and constellation affinity. This study asks whether a learned
+similarity measure improves on that ranking.
+
+**Setup.** A Siamese MLP (32 → 128 → 256 → 128 → 64, BatchNorm, trained with a triplet margin loss) embeds a
+route into a 64-dimensional vector. The Euclidean distance between the camera route's embedding and each map
+candidate's embedding enters the decision matrix as a fourth criterion, minimized like the two geometric error
+terms. The geometric weights are rescaled by `1 − w` and the neural column receives `w`, so the weight vector
+still sums to 1 and the geometric criteria keep their relative balance. One variable changes per run; seed,
+sequence and all other configuration are fixed.
+
+**Domain shift.** The network was trained on idealized map segments: 16 consecutive landmark points perturbed
+by Gaussian noise, ±15° rotation and 0.9–1.1 scale. At inference it receives something different. Production
+routes are built from YOLO detections, hold at most 10 vertices (`relocalization.photo_route_max_vertices`),
+and must be resampled to 16 points by arc length before the network will accept them. A resampled 10-vertex
+detection route is not the object the embedding was trained to separate: vertex spacing, cardinality and noise
+statistics all differ. The embedding is therefore extrapolating on every call.
+
+**Results (GeoTest1, 401 frames).**
+
+| Neural weight `w` | ATE | ΔATE vs control | LSR | Relocalization commits |
+|---|---|---|---|---|
+| 0.0 (geometric control) | **26.51 m** | — | 100% | 15 |
+| 0.10 | 27.08 m | +2% | 100% | 15 |
+| 0.20 | 33.33 m | +26% | 100% | 15 |
+| 0.35 | 51.95 m | +96% | 100% | 15 |
+| 0.50 | 48.55 m | +83% | 100% | 15 |
+
+**Interpretation.** Error grows monotonically with the neural weight through `w = 0.35`, and the commit
+schedule is identical in every run: 15 relocalization commits, the same as the control. The degradation
+therefore comes from candidate selection inside TOPSIS, not from a rescheduled search, which is the condition
+under which these deltas are comparable at all. LSR stays at 100% throughout, another reminder that LSR
+measures "not lost", not accuracy. A criterion whose harm scales with its influence carries no usable signal
+for this input distribution.
+
+**Conclusion.** The geometric control is strictly superior at every weight tested, so the neural component
+ships **disabled** (`neural_comparator.enabled: false`) and the benchmark stands at ATE 26.51 m with the
+reference frame log at sha256 `63e3e4bb…`. The integration remains in the tree, behind one config flag, because
+the negative result is informative: it isolates the training distribution, not the architecture or the TOPSIS
+coupling, as the thing to fix. Retraining on routes the pipeline actually produces, validating that the
+embedding separates correct routes from decoys before any pipeline run, and repeating this sweep would settle
+whether a learned criterion can beat 26.51 m. Method and next steps: [docs/neural_criterion.md](docs/neural_criterion.md).
+
 ## Frozen test data
 
 `scripts/verify_data.py` checks the video, model weights, and map image against the SHA256 hashes
