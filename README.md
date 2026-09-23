@@ -291,3 +291,36 @@ Reproduce: `scripts/evaluate.py`, `scripts/classical_baseline.py`, `scripts/run_
 in `scripts/data_manifest.json`. If a file is missing and `DATA_SOURCE_DIR` points at a copy, the
 script fetches it from there. It exits non-zero on any missing file or hash mismatch, so it can gate
 CI.
+
+## License
+
+This project's own source code, configuration and documentation are released under the
+[MIT License](LICENSE), © 2026 Yehor Mishchenko.
+
+## Third-party components and acknowledgments
+
+This project builds on third-party open-source software. Each component stays under its own original
+license, which the MIT license above does not alter or supersede. The components actually used are:
+
+| Component | Role here | License |
+|---|---|---|
+| [Ultralytics YOLO](https://github.com/ultralytics/ultralytics) | landmark detector (`data/best.pt` is trained with it) | AGPL-3.0 |
+| [SAHI](https://github.com/obss/sahi) | sliced inference for offline satellite-map landmark extraction | MIT |
+| [PyTorch](https://pytorch.org) / torchvision | detector inference backend (CUDA build) | BSD-3-Clause |
+| [OpenCV](https://opencv.org) | video I/O, SIFT/ORB classical baseline, rendering | Apache-2.0 |
+| [NumPy](https://numpy.org), [SciPy](https://scipy.org), [scikit-learn](https://scikit-learn.org), [scikit-image](https://scikit-image.org) | numerics, geometry and metrics | BSD-3-Clause |
+| [NetworkX](https://networkx.org) | landmark route graphs | BSD-3-Clause |
+| [Matplotlib](https://matplotlib.org), [Pillow](https://python-pillow.org) | figures, architecture diagram, GIF encoding | Matplotlib License (BSD-style), MIT-CMU |
+| [PyYAML](https://pyyaml.org) | configuration loading | MIT |
+
+Pinned versions are in `requirements.txt`.
+
+**Two points worth checking before redistribution:**
+
+- **Ultralytics YOLO is AGPL-3.0**, which carries stronger obligations than MIT, including for network
+  use and derived works. The trained weights shipped in `data/best.pt` were produced with it. Review
+  the AGPL terms, or obtain an Ultralytics commercial license, before distributing this project or a
+  product derived from it. This note is a pointer, not legal advice.
+- **The benchmark data is not covered by the MIT license above.** `data/GeoTest1.mp4` and
+  `data/datamap_4k.jpeg` are Google Earth renders, and Google's imagery terms govern their use and
+  redistribution. They are included for reproducibility of the reported numbers only.
