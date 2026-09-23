@@ -24,6 +24,19 @@ output:
   frame_log: out/frame_log.csv     # deterministic per-frame diagnostics (acceptance artifact)
   profile_log: out/profile.csv     # wall-clock per-stage timings (excluded from determinism diff)
 
+# Siamese similarity as a 4th TOPSIS criterion (embedding distance, minimized). The net is an MLP over a
+# 16-point path resampled from the candidate route (32 inputs), trained with a triplet loss on synthetic
+# paths; see core/neural_comparator.py and tools/train_siamese.py. `enabled: false` reproduces the
+# geometric-only control exactly.
+neural_comparator:
+  enabled: false              # MEASURED 2026-09-23 on GeoTest1: enabling it costs accuracy at every weight
+                              # tried — ATE 26.51 m (off) vs 27.08 / 33.33 / 51.95 / 48.55 m at weight
+                              # 0.1 / 0.2 / 0.35 / 0.5, LSR 100% and 15 commits throughout. Off keeps the
+                              # reference frame_log at sha256 63e3e4bb…; see docs/neural_criterion.md.
+  model_path: data/models/siamese_drone_v1.pth
+  device: cpu                 # eval-mode MLP; CPU keeps it deterministic and costs ~0.2 ms per candidate
+  weight: 0.2                 # TOPSIS weight of the neural column; geometric weights are rescaled to 1 - this
+
 # =================================================================================================
 # GENERAL — sensor / platform / navigation source
 # =================================================================================================

@@ -284,7 +284,8 @@ def run_video_test(config=None, nav_source=None):
     print("Initializing EnsembleNavigator...")
     navigator = EnsembleNavigator(
         global_anchors_array=global_anchors_array,
-        global_classes_array=global_classes_array
+        global_classes_array=global_classes_array,
+        neural_cfg=config.get("neural_comparator")
     )
 
     # Initialize Topological Constellations

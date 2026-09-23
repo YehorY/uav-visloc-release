@@ -4,3 +4,4 @@
 *.jpg binary
 *.gif binary
 *.png binary
+*.pth binary
